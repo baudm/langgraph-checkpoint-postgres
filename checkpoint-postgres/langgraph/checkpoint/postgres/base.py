@@ -33,6 +33,7 @@ MIGRATIONS = [
     type TEXT,
     checkpoint JSONB NOT NULL,
     metadata JSONB NOT NULL DEFAULT '{}',
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id)
 );""",
     """CREATE TABLE IF NOT EXISTS checkpoint_blobs (
@@ -42,6 +43,7 @@ MIGRATIONS = [
     version TEXT NOT NULL,
     type TEXT NOT NULL,
     blob BYTEA,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (thread_id, checkpoint_ns, channel, version)
 );""",
     """CREATE TABLE IF NOT EXISTS checkpoint_writes (
@@ -53,6 +55,7 @@ MIGRATIONS = [
     channel TEXT NOT NULL,
     type TEXT,
     blob BYTEA NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (thread_id, checkpoint_ns, checkpoint_id, task_id, idx)
 );""",
     "ALTER TABLE checkpoint_blobs ALTER COLUMN blob DROP not null;",
@@ -104,6 +107,7 @@ UPSERT_CHECKPOINTS_SQL = """
     VALUES (%s, %s, %s, %s, %s, %s)
     ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id)
     DO UPDATE SET
+        updated_at = CURRENT_TIMESTAMP,
         checkpoint = EXCLUDED.checkpoint,
         metadata = EXCLUDED.metadata;
 """
@@ -112,6 +116,7 @@ UPSERT_CHECKPOINT_WRITES_SQL = """
     INSERT INTO checkpoint_writes (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, type, blob)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id, task_id, idx) DO UPDATE SET
+        updated_at = CURRENT_TIMESTAMP,
         channel = EXCLUDED.channel,
         type = EXCLUDED.type,
         blob = EXCLUDED.blob;
